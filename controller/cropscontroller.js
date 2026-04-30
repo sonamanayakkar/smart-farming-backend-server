@@ -79,12 +79,12 @@ exports.findallCrop = async (req, res) => {
     try {
         // const userreq = req.body
         const crop = req.user.userId
-        
+
         // const findcrop = await crops_scema.find({ farmerId: new mongoose.Types.ObjectId(crop) })
 
         const findcrop = await crops_scema.aggregate([
             { $match: { farmerId: new mongoose.Types.ObjectId(crop) } },
-
+            { $sort: { createdAt: -1 } },
 
             {
                 $lookup: {
@@ -95,37 +95,45 @@ exports.findallCrop = async (req, res) => {
                 }
             },
 
-            {$addFields:{
-                Expences:{$sum:"$cropwith_profit.totalExpences"},
-                Profit:{$sum:"$cropwith_profit.profit.amount"},
-                
-            }},
+            {
+                $addFields: {
+                    Expences: { $sum: "$cropwith_profit.totalExpences" },
+                    Profit: { $sum: "$cropwith_profit.profit.amount" },
 
-            {$facet:{
-                lists:[
-                    {$project:{
-                        Expences:1,
-                        Profit:1,
-                        cropName:1,
-                        area:1,
-                        startDate:1,
-                        status:1,
-                    }}
-                ],
-                expenses:[
-                    {$group:{
-                        _id:null,
-                        totalExpenses:{$sum:"$Expences"},
-                        totalProfits:{$sum:"$Profit"}
-                    }}
-                ]
-            }}
+                }
+            },
+
+            {
+                $facet: {
+                    lists: [
+                        {
+                            $project: {
+                                Expences: 1,
+                                Profit: 1,
+                                cropName: 1,
+                                area: 1,
+                                startDate: 1,
+                                status: 1,
+                            }
+                        }
+                    ],
+                    expenses: [
+                        {
+                            $group: {
+                                _id: null,
+                                totalExpenses: { $sum: "$Expences" },
+                                totalProfits: { $sum: "$Profit" }
+                            }
+                        }
+                    ]
+                }
+            }
 
 
-           
+
         ])
 
-        
+
 
 
         if (!findcrop) {
@@ -200,11 +208,11 @@ exports.deleteCrop = async (req, res) => {
 }
 exports.updateCrop = async (req, res) => {
     try {
-         console.log('elei');
+        console.log('elei');
         const userreq = req.params.crop_id
         const userreqbody = req.body
-       
-        
+
+
         const findcrop = await crops_scema.findByIdAndUpdate(userreq, userreqbody, { new: true })
 
 
