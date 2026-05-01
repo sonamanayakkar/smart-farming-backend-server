@@ -196,7 +196,7 @@ exports.recentUser = async (req, res) => {
                             }
                         },
 
-                        { $sort: { createdAt: 1 } },
+                        { $sort: { createdAt: -1 } },
                         {
                             $addFields: {
                                 totalActiveCrops: {
