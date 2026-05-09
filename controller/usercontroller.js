@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 const users_scema = require('../models/users_scema.js')
+const crop_schema = require('../models/cropsscema.js')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const { response } = require('express')
@@ -69,7 +70,6 @@ exports.findOneUser = async (req, res) => {
 
         const finduser = await users_scema.findOne({ email: email })
 
-        console.log(finduser);
         if (!finduser) {
             return res.status(404).send({
                 status: false,
@@ -120,11 +120,12 @@ exports.findOneUser = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
     try {
-        console.log("elei");
+
 
         const { firstName, lastName, phoneNumber, district } = req.body
         const userId = req.user.userId
-        const file = req.file.path
+        const file = req.file?.path
+
 
         const searchUser = await users_scema.find({ _id: new mongoose.Types.ObjectId(userId) })
 
@@ -178,7 +179,11 @@ exports.recentUser = async (req, res) => {
             {
                 $facet: {
                     users: [
-                        { $match: { role: "farmer" } },
+                        {
+                            $match: {
+                                $or: [{ role: "farmer" }, { role: "buyer" }]
+                            }
+                        },
                         {
                             $lookup: {
                                 from: 'crops',
@@ -197,6 +202,151 @@ exports.recentUser = async (req, res) => {
                         },
 
                         { $sort: { createdAt: -1 } },
+                        {
+                            $addFields: {
+                                totalActiveCrops: {
+                                    $size: {
+                                        $filter: {
+                                            input: "$userwith_cropdata",
+                                            as: "crop",
+                                            cond: { $ne: ["$$crop.status", "Completed"] }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            $addFields: {
+                                profitperuser: { $sum: '$userwith_profitdata.profit.amount' }
+                            }
+                        }
+
+
+
+                    ],
+
+                    buyers: [{ $match: { role: "buyer" } }],
+
+                    farmers: [{ $match: { role: "farmer" } }],
+
+                    totalProfit: [
+                        { $limit: 1 },
+                        {
+                            $replaceWith: {}   // remove dependency on users
+                        },
+                        {
+                            $lookup: {
+                                from: 'profits',
+                                pipeline: [
+                                    {
+                                        $group: {
+                                            _id: null,
+                                            total: { $sum: '$profit.amount' }
+                                        }
+                                    }
+                                ],
+                                as: 'allprofits'
+                            }
+                        },
+                        {
+                            $project: {
+                                totalProfit: { $arrayElemAt: ['$allprofits.total', 0] }
+                            }
+                        }
+                    ],
+
+                    totalcrops: [
+
+                        {
+                            $lookup: {
+                                from: 'profits',
+                                pipeline: [
+                                    { $match: { status: { $ne: "Completed" } } },
+                                ],
+                                as: 'totalcrops'
+                            }
+                        }
+                    ]
+
+
+                }
+
+            },
+
+            {
+                $addFields: {
+                    totalprofits: {
+                        $arrayElemAt: ['$totalProfit.totalProfit', 0]
+                    },
+                }
+            }
+
+        ])
+
+        const activecrops = await crop_schema.find( { status: { $ne: 'Completed' } })
+
+        if (topUser) {
+            return res.status(200).send({
+                status: true,
+                message: "top user fetched Successfully",
+                response: { topUser, activecrops }
+            })
+        } else {
+            return res.status(401).send({
+                status: true,
+                message: "fetched failed!!!",
+                response: topUser
+            })
+        }
+
+    }
+    catch (error) {
+        console.log(error);
+
+        return res.status(400).send({
+            status: false,
+            message: "Internal server error",
+            response: error
+        })
+    }
+}
+exports.alluser = async (req, res) => {
+    try {
+        const { name } = req.query
+        console.log(name);
+
+        let nameobj = {}
+
+        if (name !== '') {
+            nameobj.firstName = { $regex: name, $options: 'i' }
+
+        }
+        console.log(nameobj);
+
+        const topUser = await users_scema.aggregate([
+            { $match: nameobj },
+            {
+                $facet: {
+                    users: [
+                        { $match: { role: "farmer" } },
+                        {
+                            $lookup: {
+                                from: 'crops',
+                                localField: '_id',
+                                foreignField: 'farmerId',
+                                as: 'userwith_cropdata'
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: 'profits',
+                                localField: '_id',
+                                foreignField: 'farmerId',
+                                as: 'userwith_profitdata'
+                            }
+                        },
+
+                        { $sort: { createdAt: 1 } },
                         {
                             $addFields: {
                                 totalActiveCrops: {
@@ -297,25 +447,25 @@ exports.recentUser = async (req, res) => {
         })
     }
 }
-exports.alluser = async (req, res) => {
+exports.allBuyers = async (req, res) => {
     try {
         const { name } = req.query
         console.log(name);
 
         let nameobj = {}
 
-        if (name!=='') {
-            nameobj.firstName={$regex:name,$options:'i'}
-            
+        if (name !== '') {
+            nameobj.firstName = { $regex: name, $options: 'i' }
+
         }
         console.log(nameobj);
-        
+
         const topUser = await users_scema.aggregate([
-            { $match: nameobj},
+            { $match: nameobj },
             {
                 $facet: {
                     users: [
-                        { $match: { role: "farmer" } },
+                        { $match: { role: "buyer" } },
                         {
                             $lookup: {
                                 from: 'crops',

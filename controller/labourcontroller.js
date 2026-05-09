@@ -10,9 +10,7 @@ exports.addLabour = async (req, res) => {
         const user_req = req.body
         const cropId = req.params.cropid
         const userId = req.user.userId
-        console.log(userId);
-
-        console.log(user_req);
+        
 
 
 
