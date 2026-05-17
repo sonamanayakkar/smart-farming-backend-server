@@ -5,7 +5,79 @@ const cart_schema = require('../models/addToCartSchema.js')
 const user_schema = require('../models/users_scema.js')
 const croplist_schema = require('../models/cropList_Schema')
 
+const razorpay = require("../config/razorpay.js");
 
+exports.createRazorpayOrder = async (req, res) => {
+
+
+    try {
+
+        const token = req.user.userId;
+
+     
+
+
+
+        // GET USER CART
+
+        const getCarts = await cart_schema.find({ buyerId: new mongoose.Types.ObjectId(token) });
+
+     
+
+        // TOTAL AMOUNT
+
+        const totalamount = getCarts.reduce((sum, item) =>
+
+            sum + (item.defaultPrice * item.quantity), 0);
+
+
+        // CREATE ORDER IN RAZORPAY
+
+        const options = {
+
+            amount:
+                totalamount * 100,
+
+            currency: "INR",
+
+            receipt:
+                "receipt_" + Date.now()
+
+        };
+
+
+        const order =
+            await razorpay.orders.create(
+                options
+            );
+
+
+        return res.status(200).send({
+
+            status: true,
+
+            order
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.log(error);
+
+        return res.status(500).send({
+
+            status: false,
+
+            message:
+                error.message
+
+        });
+
+    }
+
+};
 
 exports.createOrder = async (req, res) => {
     try {
@@ -185,7 +257,7 @@ exports.getallOrders = async (req, res) => {
                     as: 'u'
                 }
             },
-          
+
         ])
 
 

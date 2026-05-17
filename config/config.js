@@ -7,6 +7,7 @@ let dbconnection = async (req, res) => {
 
     if (env == "local") {
         await mongoose.connect('mongodb://127.0.0.1:27017/smart_farming')
+        // await mongoose.connect('mongodb+srv://esonaman2_db_user:RKPocox37@cluster0.ugz4ntp.mongodb.net/smart_farming')
     } else {
 
         await mongoose.connect('mongodb+srv://esonaman2_db_user:RKPocox37@cluster0.ugz4ntp.mongodb.net/smart_farming')

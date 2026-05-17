@@ -3,15 +3,15 @@ const router = express.Router();
 const multerUpload = require('../cloudinary/multerCloud.js')
 const authMiddleware = require('../middleware/middleware.js')
 
-const { createUser, findOneUser, updateUser, recentUser, alluser,allBuyers } = require('../controller/usercontroller.js')
+const { createUser, findOneUser, updateUser, recentUser, alluser, allBuyers } = require('../controller/usercontroller.js')
 const { createcrop, findallCrop, deleteCrop, updateCrop } = require('../controller/cropscontroller.js')
 const { pushProfit, getProfit, deleteProfit, updateProfit, updateAllAmount, getallprofit, getprofitOnly } = require('../controller/crop_profitController.js')
 const { addLabour, getall_labour, delete_labour, update_labour, emptythe_labour, labour_history } = require('../controller/labourcontroller.js')
-const { createLists,updateLists,deleteLists, getList, getposteddata } = require('../controller/croplists_controller.js')
+const { createLists, updateLists, deleteLists, getList, getposteddata } = require('../controller/croplists_controller.js')
 const { createCart, getCart, deleteCart, updateCart } = require('../controller/addToCartController.js')
-const { createOrder, getOrders, getallOrders, cancelOrder } = require('../controller/ordercontroller.js')
+const { createRazorpayOrder, createOrder, getOrders, getallOrders, cancelOrder } = require('../controller/ordercontroller.js')
 
-const {otpverification,getOTP,Otpcheck}=require('../controller/notificationController.js')
+const { otpverification, getOTP, Otpcheck } = require('../controller/notificationController.js')
 
 //users
 router.post('/users/register', createUser)
@@ -67,6 +67,9 @@ router.put('/cartlist/:id', authMiddleware, updateCart)
 
 
 // orders
+
+router.post("/create-razorpay-order", authMiddleware, createRazorpayOrder);
+
 router.post('/orders', authMiddleware, createOrder)
 router.get('/orders', authMiddleware, getOrders)
 router.get('/allorders', authMiddleware, getallOrders)
@@ -75,7 +78,7 @@ router.delete('/cancelOrder', cancelOrder)
 // notification
 
 router.post('/OTP', otpverification)
-router.get('/OTP/:id',authMiddleware, getOTP)
+router.get('/OTP/:id', authMiddleware, getOTP)
 router.post('/verifyOTP', Otpcheck)
 
 module.exports = router
